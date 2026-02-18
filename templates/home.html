@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>SecureApp</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            background: #f8fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .blob {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.4;
+            z-index: 0;
+        }
+
+        .blob1 {
+            top: -100px;
+            left: -100px;
+        }
+
+        .blob2 {
+            bottom: -100px;
+            right: -100px;
+        }
+
+        .container {
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        h1 {
+            font-size: 48px;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        p {
+            font-size: 18px;
+            color: #6b7280;
+            margin-top: 15px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 35px;
+            margin: 30px 10px 0;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+
+        .btn-primary {
+            background: #6366f1;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #4f46e5;
+        }
+
+        .btn-outline {
+            border: 2px solid #6366f1;
+            color: #6366f1;
+        }
+
+        .btn-outline:hover {
+            background: #6366f1;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="blob blob1"></div>
+    <div class="blob blob2"></div>
+
+    <div class="container">
+        <h1>Secure Authentication System</h1>
+        <p>Modern web security with elegant design and strong protection.</p>
+
+        <a href="/register" class="btn btn-primary">Register</a>
+        <a href="/login" class="btn btn-outline">Login</a>
+    </div>
+
+</body>
+
+</html>
