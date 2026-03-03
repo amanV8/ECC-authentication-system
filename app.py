@@ -1,164 +1,257 @@
-from flask import Flask, render_template, request, redirect, session, url_for
-import sqlite3
+from flask import Flask, render_template, request, redirect, session
 import hashlib
 import datetime
+import os
+
+
+from cryptography.hazmat.backends import default_backend
+
+from auth.ecc_utils import (
+    generate_keypair,
+    generate_nonce,
+    sign_nonce,
+    verify_signature,
+    derive_session_key
+)
+from auth.ecc_utils import generate_keypair
+from auth.replay_protection import nonce_exists, store_nonce
+
+from auth.auth_logger import log_event
+
+from auth.metrics import get_security_metrics
+
+# Import database layer
+from database import get_db, create_tables
 
 app = Flask(__name__)
-app.secret_key = "supersecretkey"  # used for session security
+app.secret_key = os.urandom(24)
 
-
-# ---------------------------
-# DATABASE CONNECTION
-# ---------------------------
-
-def get_db_connection():
-    conn = sqlite3.connect('database.db')
-    conn.row_factory = sqlite3.Row
-    return conn
-
-
-# ---------------------------
-# CREATE TABLES (RUN ON START)
-# ---------------------------
-
-def create_tables():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            email TEXT NOT NULL,
-            password_hash TEXT NOT NULL,
-            created_at TEXT NOT NULL
-        )
-    """)
-
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS login_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT,
-            login_time TEXT,
-            status TEXT,
-            reason TEXT
-        )
-    """)
-
-    conn.commit()
-    conn.close()
-
-
+# Create tables at startup
 create_tables()
 
 
-# ---------------------------
+# =====================================
 # HOME
-# ---------------------------
+# =====================================
 
 @app.route('/')
 def home():
     return render_template("home.html")
 
 
-# ---------------------------
+# =====================================
 # REGISTER
-# ---------------------------
+# =====================================
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+
     if request.method == 'POST':
 
-        username = request.form['username'].strip()
-        email = request.form['email'].strip()
-        password = request.form['password'].strip()
+        username = request.form['username']
+        email = request.form['email']
+        password = request.form['password']
 
         password_hash = hashlib.sha256(password.encode()).hexdigest()
-        created_at = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        conn = get_db_connection()
+        # Use Modular ECC Function
+        private_pem, public_pem = generate_keypair()
 
-        try:
-            conn.execute(
-                "INSERT INTO users (username, email, password_hash, created_at) VALUES (?, ?, ?, ?)",
-                (username, email, password_hash, created_at)
-            )
-            conn.commit()
-            return redirect('/login')
+        conn = get_db()
 
-        except Exception as e:
-            return f"Error: {e}"
+        conn.execute("""
+            INSERT INTO users (username, email, password_hash, public_key, private_key)
+            VALUES (?, ?, ?, ?, ?)
+        """, (username, email, password_hash, public_pem, private_pem))
 
-        finally:
-            conn.close()
+        conn.commit()
+        conn.close()
+
+        return redirect('/login')
 
     return render_template("register.html")
 
 
-
-# ---------------------------
+# =====================================
 # LOGIN
-# ---------------------------
+# =====================================
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+
     if request.method == 'POST':
 
-        username = request.form['username'].strip()
-        password = request.form['password'].strip()
-
+        username = request.form['username']
+        password = request.form['password']
         password_hash = hashlib.sha256(password.encode()).hexdigest()
 
-        conn = get_db_connection()
+        conn = get_db()
+        user = conn.execute(
+            "SELECT * FROM users WHERE username = ?",
+            (username,)
+        ).fetchone()
 
-        try:
-            user = conn.execute(
-                "SELECT * FROM users WHERE username = ?",
-                (username,)
-            ).fetchone()
-
-            if user and user['password_hash'] == password_hash:
-
-                session['username'] = username
-                return redirect('/dashboard')
-
-            else:
-                return "Invalid login!"
-
-        finally:
+        # =====================================
+        # STEP 1: PASSWORD VALIDATION
+        # =====================================
+        if not user or user['password_hash'] != password_hash:
+            log_event(username, "FAILURE", "Invalid Credentials", request.remote_addr)
             conn.close()
+            return "Invalid Credentials"
+
+        print("\n=== ECC AUTHENTICATION TRACE ===")
+
+        # =====================================
+        # STEP 2: GENERATE NONCE
+        # =====================================
+        nonce = generate_nonce()
+        print("1. Nonce Generated")
+
+        # =====================================
+        # STEP 3: REPLAY PROTECTION CHECK
+        # =====================================
+        if nonce_exists(username, nonce):
+            log_event(username, "FAILURE", "Replay Attack Detected", request.remote_addr)
+            conn.close()
+            return "Replay Attack Detected - Connection Terminated"
+
+        store_nonce(username, nonce)
+        print("2. Nonce Stored for Replay Protection")
+
+        # =====================================
+        # STEP 4: SIGN NONCE
+        # =====================================
+        signature = sign_nonce(user['private_key'], nonce)
+        print("3. Nonce Signed with Private Key")
+
+        # =====================================
+        # STEP 5: VERIFY SIGNATURE
+        # =====================================
+        try:
+            verify_signature(user['public_key'], signature, nonce)
+            print("4. Signature Verified Successfully")
+        except Exception:
+            log_event(username, "FAILURE", "Signature Verification Failed", request.remote_addr)
+            conn.close()
+            return "Authentication Failed"
+
+        # =====================================
+        # STEP 6: DERIVE SESSION KEY (ECDH)
+        # =====================================
+        session_key = derive_session_key(user['public_key'])
+        print("5. Secure Session Key Established")
+
+        # =====================================
+        # STEP 7: GENERATE TIME-BOUND TOKEN
+        # =====================================
+        timestamp = datetime.datetime.utcnow()
+        expiry = timestamp + datetime.timedelta(minutes=1)
+
+        token_raw = session_key + username + str(timestamp)
+        token = hashlib.sha256(token_raw.encode()).hexdigest()
+
+        print("6. Time-Bound Session Token Generated")
+        print("7. Expiry Set to:", expiry)
+        print("=== AUTHENTICATION SUCCESS ===\n")
+
+        # =====================================
+        # STEP 8: STORE SESSION WITH IP BINDING
+        # =====================================
+        ip_address = request.remote_addr
+
+        conn.execute("""
+            INSERT INTO sessions (username, token, expiry, ip_address)
+            VALUES (?, ?, ?, ?)
+        """, (username, token, expiry.isoformat(), ip_address))
+
+        conn.commit()
+        conn.close()
+
+        session['username'] = username
+        session['token'] = token
+
+        # =====================================
+        # STEP 9: LOG SUCCESS
+        # =====================================
+        log_event(username, "SUCCESS", "Authentication Successful", ip_address)
+
+        return redirect('/dashboard')
 
     return render_template("login.html")
-
-
-# ---------------------------
+#test change
+# =====================================
 # DASHBOARD
-# ---------------------------
+# =====================================
 
 @app.route('/dashboard')
 def dashboard():
-    if 'username' in session:
-        return render_template("dashboard.html", username=session['username'])
-    else:
+
+    token = session.get('token')
+    username = session.get('username')
+
+    if not token:
         return redirect('/login')
 
+    conn = get_db()
+    record = conn.execute(
+        "SELECT * FROM sessions WHERE token = ?",
+        (token,)
+    ).fetchone()
 
-# ---------------------------
+    if not record:
+        conn.close()
+        return "Invalid Session"
+
+    # =========================
+    # Expiry Check
+    # =========================
+    expiry = datetime.datetime.fromisoformat(record['expiry'])
+
+    if datetime.datetime.utcnow() > expiry:
+        conn.close()
+        return "Session Expired"
+
+    # =========================
+    # IP Binding Check
+    # =========================
+    current_ip = request.remote_addr
+
+    if record['ip_address'] != current_ip:
+        conn.close()
+        return "Session Hijacking Detected"
+
+    conn.close()
+
+    return render_template("dashboard.html", username=username)
+
+@app.route('/admin/security')
+def security_dashboard():
+
+    metrics = get_security_metrics()
+
+    return f"""
+    <h2>Security Metrics Dashboard</h2>
+    <p>Total Login Attempts: {metrics['total_attempts']}</p>
+    <p>Successful Logins: {metrics['success']}</p>
+    <p>Failed Logins: {metrics['failure']}</p>
+    <p>Replay Attacks Blocked: {metrics['replay_attacks']}</p>
+    <p>Signature Failures: {metrics['signature_failures']}</p>
+    <p>Active Sessions: {metrics['active_sessions']}</p>
+    """
+
+# =====================================
 # LOGOUT
-# ---------------------------
+# =====================================
 
 @app.route('/logout')
 def logout():
-    session.pop('username', None)
+    session.clear()
     return redirect('/')
 
-# ---------------------------
-# PRODUCTION
-# ---------------------------
+
+# =====================================
+# RUN SERVER
+# =====================================
 
 if __name__ == "__main__":
-    from waitress import serve
-    print("=" * 60)
-    print("🚀 Server starting on http://localhost:8000")
-    print("=" * 60)
-    serve(app, host='0.0.0.0', port=8000, threads=4)
+    app.run(debug=True)
