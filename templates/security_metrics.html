@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Security Metrics Dashboard</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: white;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .card {
+            background: #1e293b;
+            padding: 25px;
+            border-radius: 8px;
+            border-left: 6px solid #38bdf8;
+        }
+
+        .card h3 {
+            margin: 0;
+            font-size: 18px;
+            color: #38bdf8;
+        }
+
+        .card p {
+            font-size: 28px;
+            margin-top: 10px;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        a {
+            color: #22c55e;
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Security Metrics Dashboard</h1>
+
+        <div class="grid">
+
+            <div class="card">
+                <h3>Total Login Attempts</h3>
+                <p>{{ metrics.total_attempts }}</p>
+            </div>
+
+            <div class="card">
+                <h3>Successful Logins</h3>
+                <p>{{ metrics.success }}</p>
+            </div>
+
+            <div class="card">
+                <h3>Failed Logins</h3>
+                <p>{{ metrics.failure }}</p>
+            </div>
+
+            <div class="card">
+                <h3>Replay Attacks Blocked</h3>
+                <p>{{ metrics.replay_attacks }}</p>
+            </div>
+
+            <div class="card">
+                <h3>Signature Failures</h3>
+                <p>{{ metrics.signature_failures }}</p>
+            </div>
+
+            <div class="card">
+                <h3>Active Sessions</h3>
+                <p>{{ metrics.active_sessions }}</p>
+            </div>
+
+        </div>
+
+        <div class="footer">
+            <a href="/dashboard">Back to Dashboard</a>
+        </div>
+
+    </div>
+
+</body>
+
+</html>

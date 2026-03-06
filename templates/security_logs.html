@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>Authentication Logs</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: white;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #334155;
+            text-align: left;
+        }
+
+        th {
+            background: #1e293b;
+        }
+
+        tr:hover {
+            background: #1e293b;
+        }
+
+        .status-success {
+            color: #22c55e;
+        }
+
+        .status-failure {
+            color: #ef4444;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        a {
+            color: #22c55e;
+            text-decoration: none;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Authentication Event Logs</h1>
+
+        <table>
+
+            <tr>
+                <th>Timestamp</th>
+                <th>User</th>
+                <th>Status</th>
+                <th>Reason</th>
+                <th>IP Address</th>
+            </tr>
+
+            {% for log in logs %}
+
+            <tr>
+
+                <td>{{ log.timestamp }}</td>
+
+                <td>{{ log.username }}</td>
+
+                <td class="{% if log.status == 'SUCCESS' %}status-success{% else %}status-failure{% endif %}">
+                    {{ log.status }}
+                </td>
+
+                <td>{{ log.reason }}</td>
+
+                <td>{{ log.ip_address }}</td>
+
+            </tr>
+
+            {% endfor %}
+
+        </table>
+
+        <div class="footer">
+            <a href="/dashboard">Back to Dashboard</a>
+        </div>
+
+    </div>
+
+</body>
+
+</html>

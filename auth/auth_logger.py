@@ -6,18 +6,19 @@ LOG_FILE = "logs/auth.log"
 
 
 def log_event(username, status, reason, ip_address):
-    timestamp = datetime.datetime.utcnow().isoformat()
 
-    # Store in database
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
+
     conn = get_db()
+
     conn.execute("""
         INSERT INTO login_logs (username, timestamp, status, reason, ip_address)
         VALUES (?, ?, ?, ?, ?)
     """, (username, timestamp, status, reason, ip_address))
+
     conn.commit()
     conn.close()
 
-    # Store in file
     if not os.path.exists("logs"):
         os.makedirs("logs")
 

@@ -2,149 +2,145 @@
 <html>
 
 <head>
-    <title>Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <title>Secure Authentication Dashboard</title>
 
     <style>
         body {
-            margin: 0;
-            font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #eef2ff, #f9fafb);
-        }
-
-        .topbar {
-            background: #6366f1;
-            padding: 20px 40px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            font-family: Arial, sans-serif;
+            background: #0f172a;
             color: white;
+            padding: 40px;
         }
 
-        .brand {
-            font-weight: 700;
-            font-size: 20px;
+        .container {
+            max-width: 1100px;
+            margin: auto;
         }
 
-        .logout-btn {
-            background: white;
-            color: #6366f1;
-            border: none;
-            padding: 8px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
         }
 
-        .logout-btn:hover {
-            background: #f3f4f6;
-        }
-
-        .content {
-            padding: 50px;
-        }
-
-        .welcome {
-            font-size: 28px;
-            font-weight: 600;
+        .subtitle {
+            text-align: center;
+            color: #94a3b8;
             margin-bottom: 40px;
-            color: #111827;
         }
 
-        .card-grid {
+        .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            grid-template-columns: repeat(2, 1fr);
             gap: 25px;
         }
 
         .card {
-            background: white;
+            background: #1e293b;
             padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
-            position: relative;
+            border-radius: 8px;
+            border-left: 6px solid #38bdf8;
         }
 
-        .card::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            height: 6px;
-            width: 100%;
-            border-top-left-radius: 12px;
-            border-top-right-radius: 12px;
-        }
-
-        .card:nth-child(1)::before {
-            background: #10b981;
-        }
-
-        .card:nth-child(2)::before {
-            background: #3b82f6;
-        }
-
-        .card:nth-child(3)::before {
-            background: #f59e0b;
-        }
-
-        .card:nth-child(4)::before {
-            background: #ef4444;
-        }
-
-        .card h4 {
-            font-size: 14px;
-            color: #6b7280;
-            margin-bottom: 10px;
+        .card h3 {
+            margin-top: 0;
+            color: #38bdf8;
         }
 
         .card p {
-            font-size: 20px;
-            font-weight: 600;
-            margin: 0;
-            color: #111827;
+            font-size: 18px;
+            color: #e2e8f0;
+        }
+
+        .timer {
+            font-size: 28px;
+            color: #22c55e;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        a {
+            color: #22c55e;
+            text-decoration: none;
+            font-size: 18px;
         }
     </style>
+
 </head>
 
 <body>
 
-    <div class="topbar">
-        <div class="brand">SecureApp</div>
-        <a href="/logout"><button class="logout-btn">Logout</button></a>
-    </div>
+    <div class="container">
 
-    <div class="content">
+        <h1>Secure Authentication Dashboard</h1>
 
-        <div class="welcome">
-            Welcome, {{ username }}
+        <div class="subtitle">
+            ECC-Based Authentication with Time-Bound Session Tokens
         </div>
 
-        <div class="card-grid">
+        <div class="grid">
 
             <div class="card">
-                <h4>Authentication Status</h4>
-                <p>Active</p>
+                <h3>Authentication Method</h3>
+                <p>Elliptic Curve Cryptography (ECC)</p>
             </div>
 
             <div class="card">
-                <h4>Session Status</h4>
-                <p>Running</p>
+                <h3>Session Token</h3>
+                <p>Secure Token Generated</p>
             </div>
 
             <div class="card">
-                <h4>Security Level</h4>
-                <p>Standard</p>
+                <h3>Session Security</h3>
+                <p>IP Binding Enabled</p>
             </div>
 
             <div class="card">
-                <h4>User Role</h4>
-                <p>User</p>
+                <h3>Replay Protection</h3>
+                <p>Nonce Verification Active</p>
+            </div>
+
+            <div class="card">
+                <h3>Session Expiry Timer</h3>
+                <p class="timer" id="timer">60</p>
+            </div>
+
+            <div class="card">
+                <h3>Authenticated User</h3>
+                <p>{{ username }}</p>
             </div>
 
         </div>
 
+        <div class="footer">
+
+            <p>
+                <a href="/admin/security">View Security Metrics</a> |
+                <a href="/admin/logs">View Authentication Logs</a> |
+                <a href="/logout">Logout</a>
+            </p>
+
+        </div>
+
     </div>
+
+    <script>
+
+        let time = 60;
+
+        setInterval(function () {
+
+            if (time > 0) {
+                time--;
+                document.getElementById("timer").innerText = time + " sec";
+            }
+
+        }, 1000);
+
+    </script>
 
 </body>
 
