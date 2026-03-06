@@ -134,7 +134,7 @@ def login():
 
         # STEP 7: GENERATE TOKEN
         timestamp = datetime.datetime.now()
-        expiry = timestamp + datetime.timedelta(minutes=1)
+        expiry = timestamp + datetime.timedelta(minutes=5)
 
         token_raw = session_key + username + str(timestamp)
         token = hashlib.sha256(token_raw.encode()).hexdigest()
