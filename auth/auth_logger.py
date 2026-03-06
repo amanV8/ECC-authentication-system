@@ -19,8 +19,9 @@ def log_event(username, status, reason, ip_address):
     conn.commit()
     conn.close()
 
-    if not os.path.exists("logs"):
-        os.makedirs("logs")
+    # Ensure logs folder exists
+    os.makedirs("logs", exist_ok=True)
 
-    with open(LOG_FILE, "a") as f:
+    # Write log entry to file
+    with open(LOG_FILE, "a", encoding="utf-8") as f:
         f.write(f"{timestamp} | {username} | {status} | {reason} | {ip_address}\n")
