@@ -104,7 +104,7 @@ def login():
 
         # STEP 2: GENERATE NONCE
         nonce = generate_nonce()
-        print("1. Nonce Generated")
+       # nonce = bytes.fromhex("7e0d6caa9f3d269afabdf2d1ca19782a")
 
         # STEP 3: REPLAY PROTECTION
         if nonce_exists(username, nonce):
@@ -118,6 +118,8 @@ def login():
         # STEP 4: SIGN NONCE
         signature = sign_nonce(user['private_key'], nonce)
         print("3. Nonce Signed with Private Key")
+
+        
 
         # STEP 5: VERIFY SIGNATURE
         try:
